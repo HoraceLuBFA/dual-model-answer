@@ -1,6 +1,6 @@
 ---
 name: dual-model-answer
-description: 双模型同题对拍作答——Claude Code 与 Codex 就同一份 Prompt 各自独立作答，逐轮互审对方最新版并把审阅意见送达对方，各自据意见修订出新版（尾部附逐条回应的修订说明与取舍备忘），末轮补一次只审不改的终审，最后出一份共识与分歧表。全过程一步一档：answer / review / 终审意见 / 共识与分歧分别独立成文，每份文档顶部的 frontmatter 标明生成模型与上下文来源（读了哪份、针对哪份）。Prompt 不限类型：分析问题、写文章、读代码、技术调研皆可。当用户说「双答对拍」「让 Claude 和 Codex 各写一份互相审」「PK 作答」「两个模型分别回答再互相挑错」「dual-model-answer」时触发。宿主须为 Claude Code（流程依赖派发独立子任务与执行 Shell 的能力），Codex CLI 作为被调用的第二模型须在本地可用并已认证。前提是没有既有文档、双方从零作答：已存在一份待审文档时用 cross-review；要改代码仓库、走规划-实现-验收的开发任务用 dual-model-dev；对已有 diff 的代码审查用 code-review。
+description: 仅由 Claude Code 调度，需本地 Codex CLI 可用且已认证。用户要求双答对拍、PK 作答或两模型从零独立回答同题并互审时使用；保留逐轮修订、终审、逐份留痕及共识分歧表。已有文档用 cross-review，开发实现用 dual-model-dev，已有 diff 用 code-review。
 allowed-tools: Read Bash Write Edit Glob Grep Agent WebFetch WebSearch AskUserQuestion
 ---
 
