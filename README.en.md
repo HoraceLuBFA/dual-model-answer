@@ -71,7 +71,7 @@ The workflow delivers two independent final answers and a disagreement record in
 ## Installation
 
 > **Two prerequisites, with different roles.**
-> **Claude Code is the only orchestrator.** It dispatches the independent subtasks, runs the shell commands, and writes every artifact — so this skill is installed for Claude Code and nothing else.
+> **Claude Code is the only orchestrator.** It dispatches the independent subtasks, runs the shell commands, and writes every artifact — full execution belongs to Claude Code. Other harnesses may discover the shared skill, prepare materials, and hand off; discovery does not mean they can execute the full workflow.
 > **The Codex CLI is the second model being called, and does not need this skill installed.** It only has to be [present and authenticated](https://learn.chatgpt.com/docs/codex/cli) locally: `codex --version` checks the installation, `codex login status` shows the active authentication method. If Codex is unavailable, the workflow stops transparently instead of presenting single-model output as dual-model work.
 
 **Option 1 · One command (recommended)**
@@ -80,7 +80,7 @@ The workflow delivers two independent final answers and a disagreement record in
 npx skills add HoraceLuBFA/dual-model-answer -g -a claude-code
 ```
 
-[`npx skills`](https://github.com/vercel-labs/skills) accepts GitHub sources in `owner/repo` form; `-g` selects user-level installation, and `-a claude-code` restricts the target to Claude Code — installing it for any other agent accomplishes nothing, since no other agent can drive the workflow.
+[`npx skills`](https://github.com/vercel-labs/skills) accepts GitHub sources in `owner/repo` form; `-g` selects user-level installation, and `-a claude-code` restricts the target to Claude Code — other agents that discover a shared installation can use it to check prerequisites and prepare a handoff.
 
 After installing, check three things: the skill, the Codex binary, and Codex authentication.
 
@@ -172,7 +172,7 @@ Use a more direct workflow when:
 
 ## Requirements and Limits
 
-- Claude Code is the only orchestrator: the workflow depends on its ability to dispatch independent subtasks and run shell commands, and the skill is installed for it alone;
+- Claude Code is the only orchestrator: the workflow depends on its ability to dispatch independent subtasks and run shell commands, while other harnesses may prepare a handoff;
 - the Codex CLI must be present and authenticated locally as the second model being called; it does not need this skill installed;
 - factual verification is read-only, except that PDFs needed for page checks may be downloaded to a temporary directory;
 - if Claude or Codex fails, the workflow retries once and then pauses with an honest report;
@@ -237,3 +237,7 @@ The helper library also protects three operations that can otherwise fail silent
 Thanks to [Claude Code](https://code.claude.com/docs/en/overview), [OpenAI Codex](https://learn.chatgpt.com/docs/codex/cli), and the open [Agent Skills](https://agentskills.io/) ecosystem.
 
 The skill's code, prompts, and organization are released under the [MIT License](https://opensource.org/license/mit). You may use, modify, and redistribute them subject to preservation of the copyright and license notices. See [LICENSE](./LICENSE) for the complete terms.
+
+## Model identity and completion
+
+Claude and Codex are workflow roles and artifact labels. Check the actual provider, model, and available invocation method before execution. If both roles use the same backend model, report that fact without claiming cross-model verification. Complete all agreed review rounds and the final check by default; stop at early convergence only when the user has chosen that mode. Count a step as complete only after its subprocess exits successfully and produces a fresh, nonempty artifact that meets the document protocol.

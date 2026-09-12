@@ -1,6 +1,6 @@
 ---
 name: dual-model-answer
-description: 仅由 Claude Code 调度，需本地 Codex CLI 可用且已认证。用户要求双答对拍、PK 作答或两模型从零独立回答同题并互审时使用；保留逐轮修订、终审、逐份留痕及共识分歧表。已有文档用 cross-review，开发实现用 dual-model-dev，已有 diff 用 code-review。
+description: 由 Claude Code 调度本地 Codex CLI，完成用户要求的两模型同题独立作答、互审与双稿交付。需要可用的独立 Agent 和 Codex 认证；既有文档互审用 cross-review。
 allowed-tools: Read Bash Write Edit Glob Grep Agent WebFetch WebSearch AskUserQuestion
 ---
 
@@ -10,13 +10,19 @@ allowed-tools: Read Bash Write Edit Glob Grep Agent WebFetch WebSearch AskUserQu
 
 与手工做法的关键差别：**审阅意见真的送达对方**。手工时代你是人肉集成层，两个窗口都看，对方挑出的错你替它转达了；自动化之后这个人不在了，通道会断。文末「已知坑」记着实测后果。因此两条通道同时开——对方的审阅意见修我方的短，对方的答案原文补我方的长，少任何一条都是残的。
 
+## Harness 与模型身份
+
+文中的 Claude 与 Codex 是调度、文件命名及 transport 的角色标签，不保证分别使用 Anthropic 与 OpenAI 原厂模型。开局依据可见配置、认证方式与调用元数据记录两侧实际 Harness、Provider、发送模型及已知后端；模型自报身份不构成证据。不能确认最终权重时明确标记，不猜测。已有的 Cl/Cx finding 编号与文件名保留，避免破坏恢复和解析协议。
+
+本流程的 Claude Code 调度端须具备独立 Agent 与 Bash，Codex 端须能真实执行调用。其他 Harness 收到该请求时先检查可用 transport；没有等价入口则准备最小交接包并说明需在 Claude Code 续接，不能在同一会话伪装双方完成。同后端跨 Harness 检查只能标为同模型审阅；用户明确要求不同模型时，该要求仍是验收项。
+
 ## 适用 / 不适用
 
 任何想要高置信、经对抗核查答案的 Prompt 都适用：问题分析、文章、代码解读、技术选型、调研结论。不适用的三种情形与各自的替代技能见 description。
 
 前置两条，分工不同：
 
-- **调度方只能是 Claude Code。** 流程依赖 `Agent`（派发独立 subagent）与 `Bash`（后台起 `codex exec`）两项能力，`scripts/dma-lib.sh` 也只封装了 Codex 一侧的运输通道，Claude 一侧没有等价的 CLI 调用。因此本 skill 只装给 Claude Code，其他宿主能加载但跑不完第一步。
+- **调度方只能是 Claude Code。** 流程依赖 `Agent`（派发独立 subagent）与 `Bash`（后台起 `codex exec`）两项能力，`scripts/dma-lib.sh` 也只封装了 Codex 一侧的运输通道，Claude 一侧没有等价的 CLI 调用。其他宿主可以发现该入口并准备交接材料，但不能据此声称已有完整调度能力。
 - **Codex CLI 是被调用的第二模型，不需要安装本 skill**，只要本地可用并已认证：`codex --version` 验安装，`codex login status` 验认证方式（该结果同时决定计费口径，开局播报要照它说）。不可用就如实报告并停，**绝不用单模型伪装双答**。
 
 ## 配套文件
@@ -30,7 +36,7 @@ allowed-tools: Read Bash Write Edit Glob Grep Agent WebFetch WebSearch AskUserQu
 source ~/.agents/skills/dual-model-answer/scripts/dma-lib.sh
 ```
 
-这些函数封装的都是抄错了不报错、只会悄悄给出坏结果的操作——三层嵌套的正文提取、退出码不可信的 codex 调用、日志会缺尾的联网核验。一律调用，不要复制片段自己拼。
+这些函数封装的都是抄错了不报错、只会悄悄给出坏结果的操作——三层嵌套的正文提取、需核对真实退出码和新产物的 codex 调用、日志会缺尾的联网核验。一律调用，不要复制片段自己拼。
 
 规则文本按执行者归属：调度员要用的（处置词表、finding 编号、文档分区）写在本文件；只有 agent 要遵守的（成稿四条、核查着力点、修订四规则）住在 templates.md 的 prompt 模板里，那是唯一权威副本，改规则改那里。
 
@@ -78,7 +84,7 @@ dual-model-answer/
 
 步号公式：`answer v(k)` = `2k-1`；`review-k` = `2k`；终审 = `2N+2`；共识与分歧 = `2N+3`。N=2 时共 14 份文件、12 次 agent 调用。
 
-目标目录已存在，问用户一次：续跑（补齐缺失步骤）还是新开一份（目录名加序号）。调度员生成的中间物（diff、prompt、回收文件、日志）一律落 scratchpad，不进交付目录。
+目标目录已存在时核对任务身份和已有状态；用户已要求续跑或新开时直接按该选择执行，只有目标仍有歧义才询问，不覆盖已有成果。调度员生成的中间物（diff、prompt、回收文件、日志）一律落 scratchpad，不进交付目录。
 
 写盘由调度员统一做，frontmatter 由调度员生成而非 agent 自报。两个理由：Codex 在 `-s read-only` 下不能写文件，放开写权限会破掉只读红线；更要紧的是「读了哪份、针对哪份」一旦让 agent 自己填就成了自我报告，而调度员是唯一真正知道自己传了什么进去的角色。agent 只产出正文，调度员原文照录。
 
@@ -86,11 +92,11 @@ dual-model-answer/
 
 ### ⓪ 开局
 
-确定参数 → 建目录、检查已有文件 → `dma_smoke <scratchpad>` 验联网 → 向用户播报一句配置：成稿档位、轮数、本次约 12 次模型调用、以及 Codex 侧的计费口径（用户已明示则不提）→ 开工。
+确定参数 → 建目录、检查已有文件 → 涉及外部事实时用新的 scratchpad 执行 `dma_smoke` 验联网，已有本轮真实工具证据可复用 → 向用户播报一句配置：成稿档位、轮数、本次约 12 次模型调用、以及 Codex 侧的计费口径（用户已明示则不提）→ 开工。
 
 计费口径不要硬编码：`codex login status` 显示 ChatGPT 登录就说「走你的 ChatGPT 套餐用量」，显示 API Key 就说「按 API 用量计费」。写死其中一种会让另一种用户收到错误的成本预期。
 
-联网必须实测：`~/.codex/config.toml` 里没有 web_search 配置，联网完全依赖调用时的 `-c tools.web_search=true`。默默降级成无联网的 Codex 会让「能力对称」这个前提失效，而这从最终输出上看不出来。
+涉及外部事实时核验双方的联网能力。先检查当前 CLI 帮助和适用配置，必要的临时参数传给 `dma_codex` / `dma_smoke`；工具库不再硬编码历史联网旗标。纯本地材料推理不要求新闻检索。不能联网时标明缺口；用户要求外部事实核验或能力对称的部分不得默默降级。
 
 ### ① 独立作答（步 01）
 
@@ -128,7 +134,7 @@ dual-model-answer/
 
 ### ⑥ 收敛判定与收尾
 
-某轮双方审阅均无「关键/重要」级新发现，用 AskUserQuestion 问用户：提前结束（仍跑终审）还是跑满 N 轮。仅一方无发现则继续。
+默认完成约定 N 轮与终审，不因局部无发现再次询问。用户明确选择“收敛即止”时，双方均无关键/重要新发现且既有发现闭合后进入终审；仅一方无发现则继续。不得将上限时的未决问题称为已解决。
 
 收尾更新 `00 index.md` 状态，交付两份终版 + 两份终审意见 + 共识与分歧表，附两三句简报（轮次、收敛情况、主要分歧及裁决）。
 
@@ -147,8 +153,8 @@ agent 侧的规则（成稿四条、核查六个着力点、修订四规则）�
 一律经 `dma_codex <工作目录> <prompt文件> <回收文件> <日志文件> [额外参数]`，用 Bash 工具的 `run_in_background` 发起，命令里不要再加 `&`（否则双重后台，harness 拿到的是包装进程的状态而非 codex 的）。函数里已经封好三件容易出事的：stdin 传参、只读沙箱、回收文件非空判定。
 
 - **prompt 必须走 stdin**，不要用 `"$(cat 文件)"` 内联。实测内联会让长中文 prompt 被截断，到达模型的只剩一部分，而退出码、回收文件大小、产出结构全都正常，从外部完全看不出来。走了 stdin 就不要再加 `< /dev/null`，两者互斥。
-- **完成判定是回收文件非空**，退出码不可信：参数错误时 codex 秒退，后台包装层照样报 exit 0，`-o` 文件根本没建。
-- **联网开关**是 `-c tools.web_search=true`（`--search` 在 0.144.x 已移除）。旗标名会随版本漂移——报 unknown argument 时先查 `codex exec --help` 与 `codex features list | grep -i search` 看当前形态，不要硬试。
+- **完成判定包括实际调用已结束、真实退出状态、非空回收文件及文档协议检查**。包装层 exit 0 不能代替模型执行成功；每次调用隔离临时文件，禁止用旧产物通过检查。
+- **联网参数**以当前 CLI 和配置为准，不将旧版本的 `tools.web_search=true` 或 `--search` 当作恒定接口。`dma_codex` 同步等待真实进程，拒绝复用已有回收路径，并检查退出码和非空新产物；之后仍须按文档协议验证结构。
 - **日志不可全信**：实测 `run.log` 会缺尾，工具调用、最终答案、token 计数全都可能没记，而同一次运行的会话 rollout 里工具其实调了很多次。要判断工具有没有真的动过，读 `~/.codex/sessions/YYYY/MM/DD/rollout-*-<session id>.jsonl`，`dma_smoke` 就是这么验的。
 - 材料一律给文件路径（Codex 经 `-C` 自行读取），不把全文塞 prompt。每份文档单一用途，指路只需写文件名。
 - **Codex 会自动加载并通读本 skill**：实测它派活后的第一个动作就是通读 SKILL.md。好处是它免费拿到了规范；风险是本文件里的任何具体举例都会变成它的「标准答案」。因此**本 skill 与 templates.md 正文一律不得出现具体的事实性错例**（某本书某个页码、某条法规某个条款），只描述失效模式的形态——否则审阅方会照着例子去「找」，而不是照着待审文档去查。review prompt 里也写明了这一条。

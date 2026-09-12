@@ -3,7 +3,7 @@
 #   source /Users/lumenghe/.agents/skills/dual-model-answer/scripts/dma-lib.sh
 #
 # 这些函数封装的都是「抄错了不会报错、只会悄悄给出坏结果」的操作：
-# 三层嵌套的正文提取、退出码不可信的 codex 调用、日志会缺尾的联网核验。
+# 三层嵌套的正文提取、需核对真实退出码和新产物的 codex 调用、日志会缺尾的联网核验。
 # 手抄一次错一次的风险远大于读一遍函数体，所以一律调用，不要复制片段。
 
 # ---------- 正文提取 ----------
@@ -44,9 +44,22 @@ dma_diff() {
 # 静默截断，而退出码、回收文件大小、产出结构全都正常，从外部看不出来。
 dma_codex() {
   local workdir="$1" promptfile="$2" outfile="$3" logfile="$4"; shift 4
-  codex exec -s read-only --skip-git-repo-check -c tools.web_search=true \
-    -C "$workdir" -o "$outfile" "$@" - < "$promptfile" > "$logfile" 2>&1
-  # 退出码不可信：参数错误时 codex 秒退，后台包装层照样报 0，-o 文件根本没建。
+  local rc
+  if [ -e "$outfile" ] || [ -L "$outfile" ]; then
+    echo "DMA-FAIL 回收路径已存在，请为本次调用选择新路径：$outfile" >&2
+    return 1
+  fi
+  if codex exec -s read-only --skip-git-repo-check \
+    -C "$workdir" -o "$outfile" "$@" - < "$promptfile" > "$logfile" 2>&1; then
+    rc=0
+  else
+    rc=$?
+  fi
+  if [ "$rc" -ne 0 ]; then
+    echo "DMA-FAIL Codex 退出码：$rc" >&2
+    tail -20 "$logfile" >&2
+    return "$rc"
+  fi
   if [ ! -s "$outfile" ]; then
     echo "DMA-FAIL 回收文件为空：$outfile" >&2
     tail -20 "$logfile" >&2
@@ -55,16 +68,16 @@ dma_codex() {
   echo "OK $(wc -c < "$outfile" | tr -d ' ') 字节 → $outfile"
 }
 
-# dma_smoke <scratchpad目录>   开工前跑一次，确认联网真的挂上了
+# dma_smoke <新 scratchpad目录> [额外 codex 参数...]  按任务需要核验联网
 # 判据是 rollout 里 web__run 的调用次数。两个更直觉的判据都被实测否掉了：
 #   · smoke.md 的内容——Codex 联网正常时也会给栏目页 URL，看答案分不清搜的还是编的
 #   · 日志里的 web search: 行——run.log 会缺尾，某次一条工具调用都没记，
 #     同次 rollout 里 web__run 实调了 9 次。日志的沉默不是证据。
 dma_smoke() {
-  local d="$1" sid roll n
+  local d="$1" sid roll n; shift
+  mkdir -p "$d"
   printf '联网查一条今天的新闻，两行内回答，注明来源 URL。\n' > "$d/smoke.txt"
-  codex exec -s read-only --skip-git-repo-check -c tools.web_search=true \
-    -c model_reasoning_effort=low -o "$d/smoke.md" - < "$d/smoke.txt" > "$d/smoke.log" 2>&1
+  dma_codex "$d" "$d/smoke.txt" "$d/smoke.md" "$d/smoke.log" "$@" || return $?
   sid=$(grep -m1 '^session id:' "$d/smoke.log" | awk '{print $3}')
   if [ -z "$sid" ]; then echo "DMA-FAIL 日志里没有 session id" >&2; tail -20 "$d/smoke.log" >&2; return 1; fi
   roll=$(ls -t "$HOME"/.codex/sessions/*/*/*/rollout-*"$sid"*.jsonl 2>/dev/null | head -1)

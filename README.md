@@ -71,7 +71,7 @@
 ## 安装
 
 > **两条前置，分工不同。**
-> **调度方只能是 Claude Code**——整条流程由它派发独立子任务、执行 Shell、统一写盘，本 skill 只装给它。
+> **调度方只能是 Claude Code**——整条流程由它派发独立子任务、执行 Shell、统一写盘。其他 Harness 可以读取说明、准备材料并交接，不能声称已执行完整流程。
 > **Codex CLI 是被调用的第二模型，不需要装这个 skill**，只要本地[装好并认证](https://learn.chatgpt.com/docs/codex/cli)即可：`codex --version` 查安装，`codex login status` 查当前认证方式。Codex 不可用时，工作流会如实停止，不会用单模型输出冒充双模型结果。
 
 **方式一 · 一行命令（推荐）**
@@ -80,7 +80,7 @@
 npx skills add HoraceLuBFA/dual-model-answer -g -a claude-code
 ```
 
-[`npx skills`](https://github.com/vercel-labs/skills) 支持 `owner/repo` 形式的 GitHub 来源，`-g` 表示用户级安装，`-a claude-code` 把安装目标限定为 Claude Code——装给其他 agent 没有意义，它们跑不动这条流程。
+[`npx skills`](https://github.com/vercel-labs/skills) 支持 `owner/repo` 形式的 GitHub 来源，`-g` 表示用户级安装，`-a claude-code` 把安装目标限定为 Claude Code——其他 agent 即使能发现共享安装，也只用于了解前置条件和交接。
 
 安装后检查三件事：skill 装没装、Codex 装没装、Codex 认证如何。
 
@@ -236,3 +236,7 @@ dual-model-answer/
 感谢 [Claude Code](https://code.claude.com/docs/en/overview)、[OpenAI Codex](https://learn.chatgpt.com/docs/codex/cli) 与开放的 [Agent Skills](https://agentskills.io/) 生态。
 
 本 skill 的代码、提示词与组织方式以 [MIT 许可](https://opensource.org/license/mit)发布，可在保留版权声明和许可声明的前提下使用、修改与再分发。完整条款见 [LICENSE](./LICENSE)。
+
+## 模型身份与完成条件
+
+Claude 与 Codex 是工作流角色和文件标签。执行前核对实际 Provider、模型与可用调用方式；路由到同一模型时，如实标记，不能称为跨模型验证。默认完成约定的全部审阅轮次和终审，只有用户选择提前收敛时才提前结束。子进程结束、退出码成功、产生本次调用的新非空产物且符合文档协议后，才计为该步完成。
