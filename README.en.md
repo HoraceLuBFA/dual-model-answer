@@ -22,7 +22,7 @@ Give the same question to Claude Code and Codex and two polished answers soon ap
 
 When that manual process is automated, the wire can disappear with the person. A line-by-line audit of one real run found that 10 of 16 first-round findings survived unchanged in the other model's next draft. In that same run, a final review with no later artifact to carry it lost 100% of its findings; four of its five findings, each rated “important,” remained unchanged in the delivered answer. Three of six corrections also removed disputed material instead of fixing it. The full record is preserved in [`SKILL.md`](./SKILL.md#已知坑实测记录).
 
-`dual-model-answer` turns that wire into an auditable workflow. Claude Code and Codex draft independently, deliver their reviews directly to the model under review, respond to every numbered finding, and preserve answers, body diffs, dispositions, and final checks. You provide one prompt and receive two independent final answers plus a table showing what converged and what remains disputed. The goal is stronger factual confidence and traceability; model agreement never substitutes for evidence.
+`dual-model-answer` turns that wire into an auditable workflow. Claude Code and Codex draft independently, deliver their reviews directly to the model under review, respond to every numbered finding, and preserve answers, body diffs, dispositions, and final checks. You provide one prompt and receive two independent final answers plus a table showing what converged and what remains disputed. The workflow grounds factual judgments in evidence and preserves a traceable record.
 
 ## How It Works
 
@@ -62,7 +62,7 @@ Four design choices close the loop:
 | **One artifact per step** | Every answer, review, revision, and final check remains separate, preserving a traceable chain from inputs to dispositions and removing the old slicing path created by stacking multiple documents in one file and routing agents by section boundaries |
 | **Diffs and final review** | Diffs expose silent regressions and deletion-as-revision; the final check preserves findings that cannot enter another draft |
 
-File separation is a delivery boundary, not a per-file access sandbox. Round-one blindness still depends on the orchestrator providing only the original prompt and on each agent respecting the material boundary.
+For the first round, the orchestrator sends the same original prompt to both agents. Each agent reads the materials assigned to its current step.
 
 Every finding receives a stable ID. A revising model must mark it as accepted, rejected, or disputed. Rejections require evidence, while disputes must be identified as factual or framing-level disagreements. Review documents also contain a “worth absorbing” section that carries reusable evidence and arguments from the other answer, avoiding duplicated verification. Stable IDs and a closed disposition vocabulary allow the final consensus table to be extracted mechanically, with every row traceable to a source document and no ad hoc orchestrator judgment mixed in.
 
@@ -70,9 +70,7 @@ The workflow delivers two independent final answers and a disagreement record in
 
 ## Installation
 
-> **Two prerequisites, with different roles.**
-> **Claude Code is the only orchestrator.** It dispatches the independent subtasks, runs the shell commands, and writes every artifact — full execution belongs to Claude Code. Other harnesses may discover the shared skill, prepare materials, and hand off; discovery does not mean they can execute the full workflow.
-> **The Codex CLI is the second model being called, and does not need this skill installed.** It only has to be [present and authenticated](https://learn.chatgpt.com/docs/codex/cli) locally: `codex --version` checks the installation, `codex login status` shows the active authentication method. If Codex is unavailable, the workflow stops transparently instead of presenting single-model output as dual-model work.
+> **Claude Code orchestrates the workflow; the local Codex CLI provides the independent second model.** Install this skill for Claude Code and [install and authenticate Codex CLI](https://learn.chatgpt.com/docs/codex/cli). Check `codex --version` and `codex login status`. Other hosts can prepare materials and hand them off.
 
 **Option 1 · One command (recommended)**
 
@@ -129,11 +127,7 @@ test -f ~/.claude/skills/dual-model-answer/SKILL.md && \
 
 ### Website package and installation guide
 
-The [official detail page](https://www.lumenghe.com/en/skills/dual-model-answer/) provides the complete ZIP, package date, source commit, SHA-256, and this README. [Release metadata](https://www.lumenghe.com/skills/dual-model-answer/release.json) identifies the current website package; GitHub and the website provide complementary installation routes.
-
-> Read https://www.lumenghe.com/en/skills/dual-model-answer/ and its installation guide, then install `dual-model-answer` for Claude Code. Check the existing installation and preserve local changes, verify the ZIP's SHA-256, and report the installed source commit and host discovery result.
-
-See [INSTALL.en.md](./INSTALL.en.md) for path inspection, safe extraction, the shared installation directory, host discovery, dependencies, and verification. The [plain-text guide](https://www.lumenghe.com/en/skills/dual-model-answer/install.txt) includes the exact download URL and checksum. Keep files under `~/.agents/skills/dual-model-answer/`; configure a host-specific entry as described in the guide. The website ZIP and the stated source commit contain the same skill files and documentation. Documentation synchronized on **2026-11-10**; existing functional version identifiers are retained.
+The [detail page](https://www.lumenghe.com/en/skills/dual-model-answer/) provides bilingual documentation and a complete ZIP. See [INSTALL.en.md](./INSTALL.en.md) for installation and verification; the [plain-text guide](https://www.lumenghe.com/en/skills/dual-model-answer/install.txt) lists the current package URL and SHA-256. Package files match the stated GitHub source commit.
 
 ## Usage
 
@@ -144,7 +138,7 @@ See [INSTALL.en.md](./INSTALL.en.md) for path inspection, safe extraction, the s
 /dual-model-answer Evaluate approach X versus Y for our use case
 ```
 
-You never open a Codex window yourself: the orchestrator starts a fresh `codex exec` session for each step, passes material by file path, and writes the collected body to disk.
+The orchestrator starts a fresh `codex exec` session for each step, passes material by file path, and writes the collected body to disk.
 
 **Natural-language invocation**
 
@@ -248,4 +242,4 @@ The skill's code, prompts, and organization are released under the [MIT License]
 
 ## Model identity and completion
 
-Claude and Codex are workflow roles and artifact labels. Check the actual provider, model, and available invocation method before execution. If both roles use the same backend model, report that fact without claiming cross-model verification. Complete all agreed review rounds and the final check by default; stop at early convergence only when the user has chosen that mode. Count a step as complete only after its subprocess exits successfully and produces a fresh, nonempty artifact that meets the document protocol.
+Claude and Codex are workflow roles and artifact labels. Check the actual provider, model, and available invocation method before execution. If both roles use the same backend model, label the run as same-model cross-review. Complete all agreed review rounds and the final check by default; stop at early convergence only when the user has chosen that mode. Count a step as complete only after its subprocess exits successfully and produces a fresh, nonempty artifact that meets the document protocol.
