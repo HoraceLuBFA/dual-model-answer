@@ -127,6 +127,14 @@ test -f ~/.claude/skills/dual-model-answer/SKILL.md && \
   echo OK
 ```
 
+### Website package and installation guide
+
+The [official detail page](https://www.lumenghe.com/en/skills/dual-model-answer/) provides the complete ZIP, package date, source commit, SHA-256, and this README. [Release metadata](https://www.lumenghe.com/skills/dual-model-answer/release.json) identifies the current website package; GitHub and the website provide complementary installation routes.
+
+> Read https://www.lumenghe.com/en/skills/dual-model-answer/ and its installation guide, then install `dual-model-answer` for Claude Code. Check the existing installation and preserve local changes, verify the ZIP's SHA-256, and report the installed source commit and host discovery result.
+
+See [INSTALL.en.md](./INSTALL.en.md) for path inspection, safe extraction, the shared installation directory, host discovery, dependencies, and verification. The [plain-text guide](https://www.lumenghe.com/en/skills/dual-model-answer/install.txt) includes the exact download URL and checksum. Keep files under `~/.agents/skills/dual-model-answer/`; configure a host-specific entry as described in the guide. The website ZIP and the stated source commit contain the same skill files and documentation. Documentation synchronized on **2026-11-10**; existing functional version identifiers are retained.
+
 ## Usage
 
 **Explicit invocation**

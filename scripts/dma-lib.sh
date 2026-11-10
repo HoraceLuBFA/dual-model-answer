@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # dual-model-answer 调度员工具库
-#   source /Users/lumenghe/.agents/skills/dual-model-answer/scripts/dma-lib.sh
+#   source ~/.agents/skills/dual-model-answer/scripts/dma-lib.sh
 #
 # 这些函数封装的都是「抄错了不会报错、只会悄悄给出坏结果」的操作：
 # 三层嵌套的正文提取、需核对真实退出码和新产物的 codex 调用、日志会缺尾的联网核验。

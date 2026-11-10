@@ -127,6 +127,14 @@ test -f ~/.claude/skills/dual-model-answer/SKILL.md && \
   echo OK
 ```
 
+### 官网完整包与安装指南
+
+[官网详情页](https://www.lumenghe.com/skills/dual-model-answer/)提供完整 ZIP、打包日期、来源提交、SHA-256 和本 README；[发布元数据](https://www.lumenghe.com/skills/dual-model-answer/release.json)记录当前官网包。GitHub 与官网共同提供安装入口。
+
+> 请先读取 https://www.lumenghe.com/skills/dual-model-answer/ 及其安装指南，再为Claude Code安装 `dual-model-answer`。检查已有安装并保留本地修改，校验 ZIP 的 SHA-256，完成后报告安装的来源提交与宿主发现结果。
+
+[INSTALL.md](./INSTALL.md)列明路径检查、安全解压、共享安装目录、宿主发现、依赖与验证步骤；[纯文本指南](https://www.lumenghe.com/skills/dual-model-answer/install.txt)另附当前下载链接和校验值。技能文件保留在 `~/.agents/skills/dual-model-answer/`，宿主入口按指南配置。官网 ZIP 与所标示来源提交使用相同的技能文件和文档。文档同步日期为 **2026-11-10**，功能版本沿用原有标识。
+
 ## 使用方式
 
 **显式调用**
